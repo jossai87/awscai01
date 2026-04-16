@@ -107,10 +107,10 @@ nano "CAI_01/foundational/speech.txt"
 
 ```bash
 # Create a new branch and open a PR targeting main
-git checkout -b test/polly-beta
+git checkout -b test/polly-beta3
 git add "CAI_01/foundational/speech.txt"
 git commit -m "test: trigger beta Polly synthesis"
-git push origin test/polly-beta
+git push origin test/polly-beta3
 ```
 
 Then open a Pull Request on GitHub targeting `main`. The `on_pull_request.yml` workflow runs automatically and uploads `polly-audio/beta.mp3`.

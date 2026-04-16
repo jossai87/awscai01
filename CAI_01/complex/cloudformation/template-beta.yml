@@ -7,8 +7,6 @@ Parameters:
     Type: String
     Description: S3 bucket for audio output
 
-Globals: {}
-
 Resources:
 
   # IAM role the Lambda function assumes at runtime

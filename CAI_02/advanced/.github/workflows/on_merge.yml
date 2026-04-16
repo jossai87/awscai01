@@ -1,0 +1,79 @@
+name: Rekognition Prod - Upload + Validate
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  upload-and-validate-prod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install boto3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy Prod Lambda
+        run: |
+          cd CAI_02/advanced/lambda
+          zip prod_handler.zip prod_handler.py
+          aws lambda update-function-code \
+            --function-name rekognition-prod-handler \
+            --zip-file fileb://prod_handler.zip
+          aws lambda wait function-updated \
+            --function-name rekognition-prod-handler
+
+      - name: Upload images to S3 (prod prefix)
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          for img in CAI_02/foundational/images/*.jpg CAI_02/foundational/images/*.png; do
+            [ -f "$img" ] || continue
+            filename=$(basename "$img")
+            aws s3 cp "$img" "s3://${S3_BUCKET}/rekognition-input/prod/${filename}"
+            echo "Uploaded $filename to rekognition-input/prod/"
+          done
+
+      - name: Validate - poll DynamoDB for results
+        env:
+          DYNAMODB_TABLE: ${{ secrets.DYNAMODB_TABLE_PROD }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          python - <<'EOF'
+          import boto3, time, os, sys
+
+          table_name = os.environ["DYNAMODB_TABLE"]
+          region     = os.environ["AWS_REGION"]
+          dynamo     = boto3.resource("dynamodb", region_name=region)
+          table      = dynamo.Table(table_name)
+
+          print(f"Polling {table_name} for Lambda results (up to 60s)...")
+          for attempt in range(12):
+              resp  = table.scan(Limit=5)
+              items = resp.get("Items", [])
+              if items:
+                  print(f"Found {len(items)} record(s) in {table_name}:")
+                  for item in items:
+                      print(f"  {item.get('filename')} — {len(item.get('labels', []))} labels")
+                  sys.exit(0)
+              print(f"  No results yet, retrying in 5s... ({attempt + 1}/12)")
+              time.sleep(5)
+
+          print("Validation failed: no records found in DynamoDB after 60s.")
+          sys.exit(1)
+          EOF

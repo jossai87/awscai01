@@ -1,0 +1,11 @@
+{
+  "template": "welcome_email.txt",
+  "output_filename": "welcome_jordan",
+  "output_format": "html",
+  "variables": {
+    "student_name": "Jordan",
+    "course_name": "Cloud Computing Fundamentals",
+    "start_date": "May 1st",
+    "instructor_name": "Ms. Rivera"
+  }
+}

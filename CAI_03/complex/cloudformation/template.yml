@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Multilingual Audio Pipeline — Lambda, IAM, S3 event trigger.
+  Deploy with Env=beta or Env=prod.
+
+Parameters:
+  Env:
+    Type: String
+    AllowedValues: [beta, prod]
+    Description: Deployment environment
+
+  S3BucketName:
+    Type: String
+    Description: Existing S3 bucket for audio input and outputs
+
+  TargetLang:
+    Type: String
+    Default: es
+    Description: Target language code for translation (es, fr, de, pt, ja, zh)
+
+Resources:
+
+  # ── IAM Execution Role ──────────────────────────────────────────────────────
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "multilingual-${Env}-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "multilingual-${Env}-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/multilingual-${Env}-handler:*"
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub "arn:aws:s3:::${S3BucketName}/*"
+              - Effect: Allow
+                Action: [transcribe:StartTranscriptionJob, transcribe:GetTranscriptionJob]
+                Resource: "*"
+              - Effect: Allow
+                Action: translate:TranslateText
+                Resource: "*"
+              - Effect: Allow
+                Action: polly:SynthesizeSpeech
+                Resource: "*"
+      Tags:
+        - Key: Environment
+          Value: !Ref Env
+
+  # ── Lambda Function ─────────────────────────────────────────────────────────
+  AudioHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "multilingual-${Env}-handler"
+      Runtime: python3.11
+      Handler: handler.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 300
+      Environment:
+        Variables:
+          TARGET_LANG: !Ref TargetLang
+          ENV: !Ref Env
+          AWS_REGION: !Ref AWS::Region
+      Code:
+        ZipFile: |
+          # Placeholder — real code deployed by setup script
+          def lambda_handler(event, context):
+              return {"statusCode": 200, "body": "placeholder"}
+      Tags:
+        - Key: Environment
+          Value: !Ref Env
+
+  # ── S3 Lambda Permission ────────────────────────────────────────────────────
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt AudioHandler.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::${S3BucketName}"
+
+Outputs:
+  LambdaArn:
+    Value: !GetAtt AudioHandler.Arn
+    Description: ARN of the multilingual audio Lambda
+
+  LambdaRoleArn:
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Description: IAM role ARN for the Lambda

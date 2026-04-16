@@ -1,0 +1,63 @@
+name: Prompt Pipeline Beta - Deploy IaC + Upload
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy-beta:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install boto3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy Beta CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --template-file CAI_04/complex/cloudformation/template.yml \
+            --stack-name prompt-pipeline-beta-stack \
+            --parameter-overrides Env=beta S3BucketName=${{ secrets.S3_BUCKET_BETA }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset
+
+      - name: Deploy Lambda code
+        run: |
+          cd CAI_04/complex/lambda
+          zip handler.zip handler.py
+          aws lambda update-function-code \
+            --function-name prompt-pipeline-beta-handler \
+            --zip-file fileb://handler.zip
+          aws lambda wait function-updated \
+            --function-name prompt-pipeline-beta-handler
+
+      - name: Upload templates and prompt configs
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET_BETA }}
+        run: |
+          for f in CAI_04/foundational/prompt_templates/*.txt; do
+            [ -f "$f" ] || continue
+            aws s3 cp "$f" "s3://${S3_BUCKET}/prompt_templates/$(basename $f)"
+          done
+          for f in CAI_04/foundational/prompts/*.json; do
+            [ -f "$f" ] || continue
+            aws s3 cp "$f" "s3://${S3_BUCKET}/prompt_inputs/$(basename $f)" \
+              --metadata "env=beta"
+            echo "Uploaded $(basename $f)"
+          done

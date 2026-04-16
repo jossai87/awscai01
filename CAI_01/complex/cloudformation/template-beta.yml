@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Polly TTS Beta Stack - IAM Role + Lambda + API Gateway
+
+# S3 bucket name is passed in at deploy time by setup_complex.py
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: S3 bucket for audio output
+
+Globals: {}
+
+Resources:
+
+  # IAM role the Lambda function assumes at runtime
+  # KEY: includes an explicit Deny on polly-audio/prod/* so beta can never write to prod
+  BetaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: PollyBetaExecutionRole
+      Tags:
+        - Key: Environment
+          Value: beta
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: PollyBetaPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: polly:SynthesizeSpeech
+                Resource: "*"
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "arn:aws:s3:::${S3BucketName}/polly-audio/beta/*"
+              # Explicit Deny — in IAM, Deny always wins over Allow
+              - Effect: Deny
+                Action: s3:PutObject
+                Resource: !Sub "arn:aws:s3:::${S3BucketName}/polly-audio/prod/*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  # Lambda starts with placeholder code — setup_complex.py deploys the real handler.py after
+  BetaLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: PollyTextToSpeech_Beta
+      Runtime: python3.11
+      Handler: handler.lambda_handler
+      Role: !GetAtt BetaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {"statusCode": 200, "body": "placeholder"}
+      Environment:
+        Variables:
+          ENVIRONMENT: beta
+          S3_BUCKET_NAME: !Ref S3BucketName
+      Tags:
+        - Key: Environment
+          Value: beta
+
+  # API Gateway — exposes the Lambda as an HTTPS endpoint
+  BetaApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: PollyBetaAPI
+      Tags:
+        - Key: Environment
+          Value: beta
+
+  # /synthesize resource path
+  BetaResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref BetaApiGateway
+      ParentId: !GetAtt BetaApiGateway.RootResourceId
+      PathPart: synthesize
+
+  # POST method — AWS_PROXY passes the full request to Lambda and returns its response
+  BetaMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref BetaApiGateway
+      ResourceId: !Ref BetaResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt BetaLambdaFunction.Arn
+
+  # Grants API Gateway permission to invoke the Lambda
+  BetaLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt BetaLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BetaApiGateway}/*/POST/synthesize"
+
+  # Deploy the API to the "beta" stage — makes it publicly accessible
+  BetaDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: BetaMethod
+    Properties:
+      RestApiId: !Ref BetaApiGateway
+      StageName: beta
+
+# Outputs are read by setup_complex.py to get the endpoint URL
+Outputs:
+  LambdaArn:
+    Value: !GetAtt BetaLambdaFunction.Arn
+  ApiGatewayUrl:
+    Value: !Sub "https://${BetaApiGateway}.execute-api.${AWS::Region}.amazonaws.com/beta/synthesize"
+  S3BucketUri:
+    Value: !Sub "s3://${S3BucketName}/polly-audio/beta/"

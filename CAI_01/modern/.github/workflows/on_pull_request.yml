@@ -1,0 +1,51 @@
+name: Nova 2 Sonic Beta - Pull Request
+
+# ── WHEN does this run? ──────────────────────────────────────────────────────
+# Every time someone opens or updates a Pull Request targeting main.
+# This produces a "beta" audio response for QA review before going live.
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  synthesize-beta:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Pull down the repo — including your sample_input.wav audio file
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ffmpeg handles two jobs here:
+      #   1. Convert your input audio to the format Nova 2 Sonic requires
+      #   2. Convert Nova's raw PCM output to MP3 for storage
+      - name: Install ffmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r modern/requirements.txt
+
+      # Credentials come from GitHub Secrets — never hardcoded
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Run the speech-to-speech pipeline
+      # INPUT:  modern/sample_input.wav  (committed to the repo)
+      # OUTPUT: s3://your-bucket/nova-audio/beta.mp3
+      - name: Run speech-to-speech (beta)
+        env:
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          INPUT_AUDIO_FILE: modern/sample_input.wav
+          OUTPUT_KEY: nova-audio/beta.mp3
+        run: python modern/synthesize.py

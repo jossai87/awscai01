@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Polly TTS Prod Stack - IAM Role + Lambda + API Gateway
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: S3 bucket for audio output
+
+Resources:
+
+  # IAM role for the prod Lambda — same structure as beta but scoped to prod S3 path
+  # No explicit Deny needed here — prod only writes to its own path
+  ProdExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: PollyProdExecutionRole
+      Tags:
+        - Key: Environment
+          Value: prod
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: PollyProdPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: polly:SynthesizeSpeech
+                Resource: "*"
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "arn:aws:s3:::${S3BucketName}/polly-audio/prod/*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  # Lambda starts with placeholder code — setup_complex.py deploys the real handler.py after
+  ProdLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: PollyTextToSpeech_Prod
+      Runtime: python3.11
+      Handler: handler.lambda_handler
+      Role: !GetAtt ProdExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {"statusCode": 200, "body": "placeholder"}
+      Environment:
+        Variables:
+          ENVIRONMENT: prod
+          S3_BUCKET_NAME: !Ref S3BucketName
+      Tags:
+        - Key: Environment
+          Value: prod
+
+  ProdApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: PollyProdAPI
+      Tags:
+        - Key: Environment
+          Value: prod
+
+  ProdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ProdApiGateway
+      ParentId: !GetAtt ProdApiGateway.RootResourceId
+      PathPart: synthesize
+
+  ProdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ProdApiGateway
+      ResourceId: !Ref ProdResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt ProdLambdaFunction.Arn
+
+  ProdLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ProdLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ProdApiGateway}/*/POST/synthesize"
+
+  ProdDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: ProdMethod
+    Properties:
+      RestApiId: !Ref ProdApiGateway
+      StageName: prod
+
+Outputs:
+  LambdaArn:
+    Value: !GetAtt ProdLambdaFunction.Arn
+  ApiGatewayUrl:
+    Value: !Sub "https://${ProdApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/synthesize"
+  S3BucketUri:
+    Value: !Sub "s3://${S3BucketName}/polly-audio/prod/"

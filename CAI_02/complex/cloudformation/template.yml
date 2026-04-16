@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Rekognition Image Labeling Pipeline — S3, Lambda, DynamoDB, IAM.
+  Deploy with env=beta or env=prod to create environment-specific resources.
+
+Parameters:
+  Env:
+    Type: String
+    AllowedValues: [beta, prod]
+    Description: Deployment environment (beta or prod)
+
+  S3BucketName:
+    Type: String
+    Description: Name of the S3 bucket for image uploads
+
+Resources:
+
+  # ── DynamoDB Table ──────────────────────────────────────────────────────────
+  ResultsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Env}_results"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: filename
+          AttributeType: S
+      KeySchema:
+        - AttributeName: filename
+          KeyType: HASH
+      Tags:
+        - Key: Environment
+          Value: !Ref Env
+
+  # ── Lambda Execution Role ───────────────────────────────────────────────────
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "rekognition-${Env}-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "rekognition-${Env}-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/rekognition-${Env}-handler:*"
+
+              # S3 read — scoped to the env prefix only
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub "arn:aws:s3:::${S3BucketName}/rekognition-input/${Env}/*"
+
+              # Rekognition
+              - Effect: Allow
+                Action: rekognition:DetectLabels
+                Resource: "*"
+
+              # DynamoDB write — scoped to this env's table only
+              - Effect: Allow
+                Action: dynamodb:PutItem
+                Resource: !GetAtt ResultsTable.Arn
+
+      Tags:
+        - Key: Environment
+          Value: !Ref Env
+
+  # ── Lambda Function ─────────────────────────────────────────────────────────
+  RekognitionHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "rekognition-${Env}-handler"
+      Runtime: python3.11
+      Handler: handler.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref ResultsTable
+          ENV: !Ref Env
+      Code:
+        ZipFile: |
+          # Placeholder — real code deployed by GitHub Actions
+          def lambda_handler(event, context):
+              return {"statusCode": 200, "body": "placeholder"}
+      Tags:
+        - Key: Environment
+          Value: !Ref Env
+
+  # ── S3 Lambda Permission ────────────────────────────────────────────────────
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt RekognitionHandler.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::${S3BucketName}"
+
+Outputs:
+  LambdaArn:
+    Value: !GetAtt RekognitionHandler.Arn
+    Description: ARN of the Rekognition Lambda function
+
+  DynamoTableName:
+    Value: !Ref ResultsTable
+    Description: DynamoDB table name for this environment
+
+  LambdaRoleArn:
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Description: IAM role ARN for the Lambda function

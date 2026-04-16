@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Prompt Deployment Pipeline — Lambda, IAM, S3 event trigger.
+  Deploy with Env=beta or Env=prod.
+
+Parameters:
+  Env:
+    Type: String
+    AllowedValues: [beta, prod]
+    Description: Deployment environment
+
+  S3BucketName:
+    Type: String
+    Description: Existing S3 bucket for prompt inputs and outputs
+
+Resources:
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "prompt-pipeline-${Env}-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "prompt-pipeline-${Env}-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/prompt-pipeline-${Env}-handler:*"
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub "arn:aws:s3:::${S3BucketName}/*"
+              - Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource: "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"
+      Tags:
+        - Key: Environment
+          Value: !Ref Env
+
+  PromptHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "prompt-pipeline-${Env}-handler"
+      Runtime: python3.11
+      Handler: handler.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref S3BucketName
+          ENV: !Ref Env
+          AWS_REGION: !Ref AWS::Region
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {"statusCode": 200, "body": "placeholder"}
+      Tags:
+        - Key: Environment
+          Value: !Ref Env
+
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt PromptHandler.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::${S3BucketName}"
+
+Outputs:
+  LambdaArn:
+    Value: !GetAtt PromptHandler.Arn
+  LambdaRoleArn:
+    Value: !GetAtt LambdaExecutionRole.Arn

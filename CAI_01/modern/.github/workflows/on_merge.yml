@@ -1,0 +1,45 @@
+name: Nova 2 Sonic Prod - Merge to Main
+
+# ── WHEN does this run? ──────────────────────────────────────────────────────
+# Every time a PR is merged into main (a push event on main).
+# This is the production copy — reviewed and approved audio.
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  synthesize-prod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r modern/requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # INPUT:  modern/sample_input.wav
+      # OUTPUT: s3://your-bucket/nova-audio/prod.mp3
+      - name: Run speech-to-speech (prod)
+        env:
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          INPUT_AUDIO_FILE: modern/sample_input.wav
+          OUTPUT_KEY: nova-audio/prod.mp3
+        run: python modern/synthesize.py

@@ -100,7 +100,14 @@ The user or role running this pipeline needs:
 
 ## Verifying Results in DynamoDB
 
+**macOS / Linux**
 ```bash
+aws dynamodb scan --table-name beta_results
+aws dynamodb scan --table-name prod_results
+```
+
+**Windows (PowerShell)**
+```powershell
 aws dynamodb scan --table-name beta_results
 aws dynamodb scan --table-name prod_results
 ```

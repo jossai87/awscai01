@@ -17,9 +17,17 @@ GitHub Actions
 
 ## Setup
 
+**macOS / Linux**
 ```bash
 S3_BUCKET=your-bucket AWS_REGION=us-east-1 \
   python3 CAI_04/advanced/scripts/setup_advanced.py
+```
+
+**Windows (PowerShell)**
+```powershell
+$env:S3_BUCKET = "your-bucket"
+$env:AWS_REGION = "us-east-1"
+python CAI_04/advanced/scripts/setup_advanced.py
 ```
 
 ---

@@ -19,9 +19,18 @@ GitHub Actions
 
 ## Setup
 
+**macOS / Linux**
 ```bash
 S3_BUCKET_BETA=your-beta-bucket S3_BUCKET_PROD=your-prod-bucket AWS_REGION=us-east-1 \
   python3 CAI_04/complex/scripts/setup_complex.py
+```
+
+**Windows (PowerShell)**
+```powershell
+$env:S3_BUCKET_BETA = "your-beta-bucket"
+$env:S3_BUCKET_PROD = "your-prod-bucket"
+$env:AWS_REGION = "us-east-1"
+python CAI_04/complex/scripts/setup_complex.py
 ```
 
 ---
@@ -40,7 +49,14 @@ S3_BUCKET_BETA=your-beta-bucket S3_BUCKET_PROD=your-prod-bucket AWS_REGION=us-ea
 
 ## Verify Outputs
 
+**macOS / Linux**
 ```bash
+aws s3 ls s3://your-beta-bucket/beta/outputs/
+aws s3 ls s3://your-prod-bucket/prod/outputs/
+```
+
+**Windows (PowerShell)**
+```powershell
 aws s3 ls s3://your-beta-bucket/beta/outputs/
 aws s3 ls s3://your-prod-bucket/prod/outputs/
 ```

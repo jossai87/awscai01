@@ -62,6 +62,7 @@ The Lambda execution role is scoped tightly:
 
 ## Deploying Manually (first time)
 
+**macOS / Linux**
 ```bash
 # Deploy beta stack
 aws cloudformation deploy \
@@ -85,11 +86,42 @@ aws cloudformation describe-stacks --stack-name rekognition-prod-stack \
   --query "Stacks[0].Outputs[?OutputKey=='LambdaArn'].OutputValue" --output text
 ```
 
+**Windows (PowerShell)**
+```powershell
+# Deploy beta stack
+aws cloudformation deploy `
+  --template-file CAI_02/complex/cloudformation/template.yml `
+  --stack-name rekognition-beta-stack `
+  --parameter-overrides Env=beta S3BucketName=your-bucket `
+  --capabilities CAPABILITY_NAMED_IAM
+
+# Deploy prod stack
+aws cloudformation deploy `
+  --template-file CAI_02/complex/cloudformation/template.yml `
+  --stack-name rekognition-prod-stack `
+  --parameter-overrides Env=prod S3BucketName=your-bucket `
+  --capabilities CAPABILITY_NAMED_IAM
+
+# Get Lambda ARNs and save as GitHub secrets
+aws cloudformation describe-stacks --stack-name rekognition-beta-stack `
+  --query "Stacks[0].Outputs[?OutputKey=='LambdaArn'].OutputValue" --output text
+
+aws cloudformation describe-stacks --stack-name rekognition-prod-stack `
+  --query "Stacks[0].Outputs[?OutputKey=='LambdaArn'].OutputValue" --output text
+```
+
 ---
 
 ## Verifying Results
 
+**macOS / Linux**
 ```bash
+aws dynamodb scan --table-name beta_results
+aws dynamodb scan --table-name prod_results
+```
+
+**Windows (PowerShell)**
+```powershell
 aws dynamodb scan --table-name beta_results
 aws dynamodb scan --table-name prod_results
 ```

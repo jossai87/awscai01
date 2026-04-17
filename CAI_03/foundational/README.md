@@ -22,9 +22,18 @@ audio_inputs/*.mp3
 - IAM user with: `s3:PutObject`, `s3:GetObject`, `transcribe:StartTranscriptionJob`, `transcribe:GetTranscriptionJob`, `translate:TranslateText`, `polly:SynthesizeSpeech`
 
 Run the setup script to provision automatically:
+
+**macOS / Linux**
 ```bash
 S3_BUCKET=your-bucket AWS_REGION=us-east-1 \
   python3 CAI_03/foundational/scripts/setup_foundational.py
+```
+
+**Windows (PowerShell)**
+```powershell
+$env:S3_BUCKET = "your-bucket"
+$env:AWS_REGION = "us-east-1"
+python CAI_03/foundational/scripts/setup_foundational.py
 ```
 
 ---
@@ -50,7 +59,15 @@ S3_BUCKET=your-bucket AWS_REGION=us-east-1 \
 
 ## Verify Outputs
 
+**macOS / Linux**
 ```bash
+aws s3 ls s3://your-bucket/beta/transcripts/
+aws s3 ls s3://your-bucket/beta/translations/
+aws s3 ls s3://your-bucket/beta/audio_outputs/
+```
+
+**Windows (PowerShell)**
+```powershell
 aws s3 ls s3://your-bucket/beta/transcripts/
 aws s3 ls s3://your-bucket/beta/translations/
 aws s3 ls s3://your-bucket/beta/audio_outputs/

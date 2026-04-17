@@ -19,9 +19,17 @@ GitHub Actions
 
 Run the setup script — it provisions everything:
 
+**macOS / Linux**
 ```bash
 S3_BUCKET=your-bucket AWS_REGION=us-east-1 \
   python3 CAI_03/advanced/scripts/setup_advanced.py
+```
+
+**Windows (PowerShell)**
+```powershell
+$env:S3_BUCKET = "your-bucket"
+$env:AWS_REGION = "us-east-1"
+python CAI_03/advanced/scripts/setup_advanced.py
 ```
 
 Creates: Lambda execution role, `multilingual-audio-handler` Lambda, S3 event notification, CI IAM user.

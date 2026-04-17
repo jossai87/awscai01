@@ -103,11 +103,12 @@ ffmpeg -i my_audio.mp3 -ar 16000 -ac 1 -sample_fmt s16 modern/sample_input.wav
 
 ## Running Locally (for testing before pushing)
 
+**macOS / Linux**
 ```bash
 # Install dependencies
 pip install -r modern/requirements.txt
 
-# Install ffmpeg (macOS)
+# Install ffmpeg
 brew install ffmpeg
 
 # Set environment variables
@@ -120,6 +121,26 @@ export OUTPUT_KEY=nova-audio/test.mp3
 
 # Run
 python3 modern/synthesize.py
+```
+
+**Windows (PowerShell)**
+```powershell
+# Install dependencies
+pip install -r modern/requirements.txt
+
+# Install ffmpeg (via winget or download from https://ffmpeg.org/download.html)
+winget install ffmpeg
+
+# Set environment variables
+$env:AWS_ACCESS_KEY_ID = "your_key"
+$env:AWS_SECRET_ACCESS_KEY = "your_secret"
+$env:AWS_REGION = "us-east-1"
+$env:S3_BUCKET_NAME = "your-bucket-name"
+$env:INPUT_AUDIO_FILE = "modern\sample_input.wav"
+$env:OUTPUT_KEY = "nova-audio/test.mp3"
+
+# Run
+python modern\synthesize.py
 ```
 
 ---
@@ -148,6 +169,7 @@ aws s3 ls s3://your-bucket-name/nova-audio/
 # Download and listen
 aws s3 cp s3://your-bucket-name/nova-audio/beta.mp3 ./beta.mp3
 open beta.mp3   # macOS
+start beta.mp3  # Windows
 ```
 
 ---
@@ -161,7 +183,7 @@ open beta.mp3   # macOS
 | 3 | Model access not enabled | Enable Nova 2 Sonic in Bedrock Console → Model access |
 | 4 | Empty audio response | Usually means the input audio was silence or too short — check your WAV file |
 | 5 | `aws-sdk-bedrock-runtime` not found | This is the smithy SDK, not standard boto3. Run `pip install aws-sdk-bedrock-runtime` |
-| 6 | ffmpeg not found | Install with `brew install ffmpeg` (Mac) or `apt-get install ffmpeg` (Linux) |
+| 6 | ffmpeg not found | Install with `brew install ffmpeg` (Mac), `apt-get install ffmpeg` (Linux), or `winget install ffmpeg` (Windows) |
 | 7 | 8-minute session limit | Nova 2 Sonic cuts off at 8 minutes. Split long audio into segments if needed |
 | 8 | `sample_input.wav` missing | The file must be committed to the repo — it's the audio input for the pipeline |
 

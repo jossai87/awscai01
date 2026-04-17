@@ -34,16 +34,35 @@ aws s3 ls s3://cai-01-jossai-1
 
 Create a virtual environment and install boto3. You only need to do this once — the same venv works for all three projects.
 
+**macOS / Linux**
 ```bash
 python3 -m venv /tmp/cai01-venv
 source /tmp/cai01-venv/bin/activate
 pip install boto3
 ```
 
+**Windows (PowerShell)**
+```powershell
+python -m venv C:\cai01-venv
+C:\cai01-venv\Scripts\Activate.ps1
+pip install boto3
+```
+
+> **Windows only:** If you get a permissions error running `Activate.ps1`, run this first:
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
+
 To confirm it worked:
 
+**macOS / Linux**
 ```bash
 python3 -c "import boto3; print(boto3.__version__)"
+```
+
+**Windows (PowerShell)**
+```powershell
+python -c "import boto3; print(boto3.__version__)"
 ```
 
 ---
@@ -52,6 +71,7 @@ python3 -c "import boto3; print(boto3.__version__)"
 
 This creates an IAM user with least-privilege permissions and prints the credentials you need for GitHub Secrets.
 
+**macOS / Linux**
 ```bash
 source /tmp/cai01-venv/bin/activate
 
@@ -59,6 +79,16 @@ export S3_BUCKET_NAME=cai-01-jossai-1
 export AWS_REGION=us-east-1
 
 python3 "CAI_01/foundational/scripts/setup_iam_polly.py"
+```
+
+**Windows (PowerShell)**
+```powershell
+C:\cai01-venv\Scripts\Activate.ps1
+
+$env:S3_BUCKET_NAME = "cai-01-jossai-1"
+$env:AWS_REGION = "us-east-1"
+
+python "CAI_01/foundational/scripts/setup_iam_polly.py"
 ```
 
 The script will print output like this:
@@ -91,12 +121,22 @@ Go to **https://github.com/jossai87/awsai01/settings/secrets/actions** and add a
 
 Open `speech.txt` and replace the content with whatever you want Polly to say:
 
+**macOS / Linux**
 ```bash
 # View current content
 cat "CAI_01/foundational/speech.txt"
 
 # Edit it
 nano "CAI_01/foundational/speech.txt"
+```
+
+**Windows (PowerShell)**
+```powershell
+# View current content
+Get-Content "CAI_01\foundational\speech.txt"
+
+# Edit it (opens in Notepad)
+notepad "CAI_01\foundational\speech.txt"
 ```
 
 ---
@@ -142,6 +182,7 @@ You should see:
 
 ## Run Locally (Without GitHub Actions)
 
+**macOS / Linux**
 ```bash
 source /tmp/cai01-venv/bin/activate
 
@@ -150,6 +191,17 @@ export AWS_REGION=us-east-1
 export OUTPUT_KEY=polly-audio/local-test.mp3
 
 python3 "CAI_01/foundational/synthesize.py"
+```
+
+**Windows (PowerShell)**
+```powershell
+C:\cai01-venv\Scripts\Activate.ps1
+
+$env:S3_BUCKET_NAME = "cai-01-jossai-1"
+$env:AWS_REGION = "us-east-1"
+$env:OUTPUT_KEY = "polly-audio/local-test.mp3"
+
+python "CAI_01/foundational/synthesize.py"
 ```
 
 ---

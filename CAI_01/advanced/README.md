@@ -28,13 +28,23 @@ Your bucket is already created: **`cai-01-jossai-1`** in `us-east-1`. No action 
 
 If you haven't already, create the virtual environment and install boto3:
 
+**macOS / Linux**
 ```bash
 python3 -m venv /tmp/cai01-venv
 source /tmp/cai01-venv/bin/activate
 pip install boto3
 ```
 
-> Already done from the foundational project? Just activate it: `source /tmp/cai01-venv/bin/activate`
+**Windows (PowerShell)**
+```powershell
+python -m venv C:\cai01-venv
+C:\cai01-venv\Scripts\Activate.ps1
+pip install boto3
+```
+
+> Already done from the foundational project? Just activate it:
+> - macOS/Linux: `source /tmp/cai01-venv/bin/activate`
+> - Windows: `C:\cai01-venv\Scripts\Activate.ps1`
 
 ---
 
@@ -42,6 +52,7 @@ pip install boto3
 
 This creates the IAM role, both Lambda functions, and both API Gateways in one shot.
 
+**macOS / Linux**
 ```bash
 source /tmp/cai01-venv/bin/activate
 
@@ -49,6 +60,16 @@ export S3_BUCKET_NAME=cai-01-jossai-1
 export AWS_REGION=us-east-1
 
 python3 "CAI_01/advanced/scripts/setup_advanced.py"
+```
+
+**Windows (PowerShell)**
+```powershell
+C:\cai01-venv\Scripts\Activate.ps1
+
+$env:S3_BUCKET_NAME = "cai-01-jossai-1"
+$env:AWS_REGION = "us-east-1"
+
+python "CAI_01/advanced/scripts/setup_advanced.py"
 ```
 
 The script will print output like this when complete:
@@ -150,6 +171,7 @@ aws s3 cp s3://cai-01-jossai-1/polly-audio/beta/ ./beta-audio/ --recursive
 
 Safe to re-run — updates existing resources instead of failing:
 
+**macOS / Linux**
 ```bash
 source /tmp/cai01-venv/bin/activate
 
@@ -157,6 +179,16 @@ export S3_BUCKET_NAME=cai-01-jossai-1
 export AWS_REGION=us-east-1
 
 python3 "CAI_01/advanced/scripts/setup_advanced.py"
+```
+
+**Windows (PowerShell)**
+```powershell
+C:\cai01-venv\Scripts\Activate.ps1
+
+$env:S3_BUCKET_NAME = "cai-01-jossai-1"
+$env:AWS_REGION = "us-east-1"
+
+python "CAI_01/advanced/scripts/setup_advanced.py"
 ```
 
 ---

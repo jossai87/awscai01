@@ -34,13 +34,23 @@ aws sts get-caller-identity
 
 Set up your Python virtual environment and install boto3:
 
+**macOS / Linux**
 ```bash
 python3 -m venv /tmp/cai01-venv
 source /tmp/cai01-venv/bin/activate
 pip install boto3
 ```
 
-> Already done from a previous project? Just activate it: `source /tmp/cai01-venv/bin/activate`
+**Windows (PowerShell)**
+```powershell
+python -m venv C:\cai01-venv
+C:\cai01-venv\Scripts\Activate.ps1
+pip install boto3
+```
+
+> Already done from a previous project? Just activate it:
+> - macOS/Linux: `source /tmp/cai01-venv/bin/activate`
+> - Windows: `C:\cai01-venv\Scripts\Activate.ps1`
 
 Your IAM user needs these permissions:
 - `cloudformation:*`
@@ -59,6 +69,7 @@ Your bucket is already created: **`cai-01-jossai-1`** in `us-east-1`. No action 
 
 ## Step 3 — Deploy Both CloudFormation Stacks
 
+**macOS / Linux**
 ```bash
 source /tmp/cai01-venv/bin/activate
 
@@ -66,6 +77,16 @@ export S3_BUCKET_NAME=cai-01-jossai-1
 export AWS_REGION=us-east-1
 
 python3 "CAI_01/complex/scripts/setup_complex.py"
+```
+
+**Windows (PowerShell)**
+```powershell
+C:\cai01-venv\Scripts\Activate.ps1
+
+$env:S3_BUCKET_NAME = "cai-01-jossai-1"
+$env:AWS_REGION = "us-east-1"
+
+python "CAI_01/complex/scripts/setup_complex.py"
 ```
 
 The script will print output like this when complete:

@@ -72,7 +72,15 @@ Via AWS Console:
 2. Click "Explore table items"
 
 Via CLI:
+
+**macOS / Linux**
 ```bash
+aws dynamodb scan --table-name beta_results
+aws dynamodb scan --table-name prod_results
+```
+
+**Windows (PowerShell)**
+```powershell
 aws dynamodb scan --table-name beta_results
 aws dynamodb scan --table-name prod_results
 ```

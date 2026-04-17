@@ -14,9 +14,18 @@ prompts/*.json + prompt_templates/*.txt
 
 ## Setup
 
+**macOS / Linux**
 ```bash
 S3_BUCKET_BETA=your-beta-bucket S3_BUCKET_PROD=your-prod-bucket AWS_REGION=us-east-1 \
   python3 CAI_04/foundational/scripts/setup_foundational.py
+```
+
+**Windows (PowerShell)**
+```powershell
+$env:S3_BUCKET_BETA = "your-beta-bucket"
+$env:S3_BUCKET_PROD = "your-prod-bucket"
+$env:AWS_REGION = "us-east-1"
+python CAI_04/foundational/scripts/setup_foundational.py
 ```
 
 Creates S3 buckets with static website hosting and an IAM user with `bedrock:InvokeModel` + `s3:PutObject`.
@@ -60,7 +69,14 @@ Creates S3 buckets with static website hosting and an IAM user with `bedrock:Inv
 
 ## Verify Outputs
 
+**macOS / Linux**
 ```bash
+aws s3 ls s3://your-beta-bucket/beta/outputs/
+aws s3 ls s3://your-prod-bucket/prod/outputs/
+```
+
+**Windows (PowerShell)**
+```powershell
 aws s3 ls s3://your-beta-bucket/beta/outputs/
 aws s3 ls s3://your-prod-bucket/prod/outputs/
 ```

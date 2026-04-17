@@ -30,9 +30,18 @@ One stack per environment (`multilingual-beta-stack`, `multilingual-prod-stack`)
 
 ## Setup
 
+**macOS / Linux**
 ```bash
 S3_BUCKET=your-bucket AWS_REGION=us-east-1 TARGET_LANG=es \
   python3 CAI_03/complex/scripts/setup_complex.py
+```
+
+**Windows (PowerShell)**
+```powershell
+$env:S3_BUCKET = "your-bucket"
+$env:AWS_REGION = "us-east-1"
+$env:TARGET_LANG = "es"
+python CAI_03/complex/scripts/setup_complex.py
 ```
 
 ---
@@ -50,7 +59,15 @@ S3_BUCKET=your-bucket AWS_REGION=us-east-1 TARGET_LANG=es \
 
 ## Verify Outputs
 
+**macOS / Linux**
 ```bash
+aws s3 ls s3://your-bucket/beta/transcripts/
+aws s3 ls s3://your-bucket/beta/translations/
+aws s3 ls s3://your-bucket/beta/audio_outputs/
+```
+
+**Windows (PowerShell)**
+```powershell
 aws s3 ls s3://your-bucket/beta/transcripts/
 aws s3 ls s3://your-bucket/beta/translations/
 aws s3 ls s3://your-bucket/beta/audio_outputs/

@@ -8,15 +8,115 @@ images/*.jpg|png  →  S3 (rekognition-input/)  →  Rekognition detect_labels  
 
 ---
 
-## AWS Resources Required
+## Step-by-Step Deployment
 
-Create these before running the workflows:
+### Step 1: Create AWS Resources
+
+**S3 Bucket**
+
+Go to the AWS Console → S3 → Create bucket. Any name, any region. No special configuration needed. Note the bucket name for later.
+
+**DynamoDB Tables**
+
+Go to AWS Console → DynamoDB → Create table. Create both tables:
+
+| Table Name     | Partition Key        | Billing Mode    |
+|----------------|----------------------|-----------------|
+| `beta_results` | `filename` (String)  | PAY_PER_REQUEST |
+| `prod_results` | `filename` (String)  | PAY_PER_REQUEST |
+
+**IAM User**
+
+Go to AWS Console → IAM → Users → Create user.
+1. Give it a name (e.g. `rekognition-github-actions`)
+2. Attach a custom inline policy with these permissions:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "s3:PutObject",
+    "rekognition:DetectLabels",
+    "dynamodb:PutItem"
+  ],
+  "Resource": "*"
+}
+```
+
+3. After creating the user, go to **Security credentials** → **Create access key** → choose **Application running outside AWS**
+4. Save the **Access Key ID** and **Secret Access Key** — you'll need them in the next step
+
+---
+
+### Step 2: Add GitHub Secrets
+
+Go to your repo on GitHub → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+
+Add all six secrets:
+
+| Secret Name             | Value                        |
+|-------------------------|------------------------------|
+| `AWS_ACCESS_KEY_ID`     | From the IAM user you created |
+| `AWS_SECRET_ACCESS_KEY` | From the IAM user you created |
+| `AWS_REGION`            | e.g. `us-east-1`             |
+| `S3_BUCKET`             | Your S3 bucket name          |
+| `DYNAMODB_TABLE_BETA`   | `beta_results`               |
+| `DYNAMODB_TABLE_PROD`   | `prod_results`               |
+
+---
+
+### Step 3: Add an Image
+
+Add a `.jpg` or `.png` file to the `CAI_02/foundational/images/` folder. There's already a sample image there you can use.
+
+---
+
+### Step 4: Create a Branch and Open a Pull Request
+
+```bash
+git checkout -b feature/test-rekognition
+git add project/foundational/images/
+git commit -m "add image for rekognition analysis"
+git push -u origin feature/test-rekognition
+```
+
+Then go to GitHub and open a pull request from `feature/test-rekognition` → `main`.
+
+The **beta workflow** will trigger automatically. Watch it run under the **Actions** tab.
+
+---
+
+### Step 5: Verify Beta Results
+
+Once the workflow completes, check DynamoDB:
+
+**AWS Console:**
+1. Open DynamoDB → Tables → `beta_results`
+2. Click "Explore table items"
+
+**CLI:**
+```bash
+aws dynamodb scan --table-name beta_results
+```
+
+---
+
+### Step 6: Merge to Trigger Prod
+
+Merge the pull request on GitHub. The **prod workflow** will trigger automatically and write results to `prod_results`.
+
+```bash
+aws dynamodb scan --table-name prod_results
+```
+
+---
+
+## AWS Resources Reference
 
 ### S3 Bucket
 Any bucket in your target region. No special configuration needed.
 
 ### DynamoDB Tables
-Create two tables with the following settings:
 
 | Table Name     | Partition Key        | Type   |
 |----------------|----------------------|--------|
@@ -42,50 +142,7 @@ Create an IAM user with the following permissions:
 
 ---
 
-## GitHub Secrets
-
-Go to your repo → Settings → Secrets and variables → Actions → New repository secret.
-
-| Secret Name          | Description                          |
-|----------------------|--------------------------------------|
-| `AWS_ACCESS_KEY_ID`  | IAM user access key                  |
-| `AWS_SECRET_ACCESS_KEY` | IAM user secret key               |
-| `AWS_REGION`         | e.g. `us-east-1`                     |
-| `S3_BUCKET`          | Your S3 bucket name                  |
-| `DYNAMODB_TABLE_BETA`| `beta_results`                       |
-| `DYNAMODB_TABLE_PROD`| `prod_results`                       |
-
----
-
-## Adding and Analyzing Images
-
-1. Add `.jpg` or `.png` files to the `CAI_02/foundational/images/` folder.
-2. Open a pull request targeting `main` → beta workflow runs → results written to `beta_results`.
-3. Merge the PR → prod workflow runs → results written to `prod_results`.
-
----
-
-## Verifying Results in DynamoDB
-
-Via AWS Console:
-1. Open DynamoDB → Tables → `beta_results` or `prod_results`
-2. Click "Explore table items"
-
-Via CLI:
-
-**macOS / Linux**
-```bash
-aws dynamodb scan --table-name beta_results
-aws dynamodb scan --table-name prod_results
-```
-
-**Windows (PowerShell)**
-```powershell
-aws dynamodb scan --table-name beta_results
-aws dynamodb scan --table-name prod_results
-```
-
-### Example Record
+## Example DynamoDB Record
 
 ```json
 {

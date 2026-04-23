@@ -17,6 +17,7 @@ import boto3
 import json
 import os
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -57,7 +58,7 @@ def detect_labels(s3_key: str) -> list[dict]:
         MinConfidence=MIN_CONFIDENCE,
     )
     return [
-        {"Name": label["Name"], "Confidence": round(label["Confidence"], 2)}
+        {"Name": label["Name"], "Confidence": Decimal(str(round(label["Confidence"], 2)))}
         for label in response["Labels"]
     ]
 
@@ -73,7 +74,7 @@ def write_to_dynamodb(filename: str, s3_key: str, labels: list[dict]) -> None:
     }
     table.put_item(Item=item)
     print(f"  Written to DynamoDB table '{DYNAMODB_TABLE}'")
-    print(f"  Labels: {json.dumps(labels, indent=2)}")
+    print(f"  Labels: {json.dumps([{**l, 'Confidence': float(l['Confidence'])} for l in labels], indent=2)}")
 
 
 def analyze(image_path: Path) -> None:

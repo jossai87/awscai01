@@ -16,51 +16,50 @@ GitHub Actions
 
 ---
 
-## What CloudFormation Provisions
+## Step-by-Step Deployment
 
-One stack per environment (`rekognition-beta-stack`, `rekognition-prod-stack`), each containing:
+### Step 1: Create an S3 Bucket
 
-| Resource              | Name                              |
-|-----------------------|-----------------------------------|
-| DynamoDB Table        | `beta_results` / `prod_results`   |
-| Lambda Function       | `rekognition-beta-handler` / `rekognition-prod-handler` |
-| IAM Execution Role    | `rekognition-beta-lambda-role` / `rekognition-prod-lambda-role` |
-
-S3 bucket and event notifications are configured separately (S3 bucket notifications can't be managed by two stacks simultaneously).
+Go to AWS Console → S3 → Create bucket. Any name, any region. Note the bucket name — you'll use it throughout.
 
 ---
 
-## IAM Permissions — Least Privilege
+### Step 2: Create an IAM User for GitHub Actions
 
-The Lambda execution role is scoped tightly:
+Go to AWS Console → IAM → Users → Create user.
 
-- `s3:GetObject` — only on `rekognition-input/{env}/*`
-- `rekognition:DetectLabels` — all resources (required by Rekognition)
-- `dynamodb:PutItem` — only on the environment's own table
-- CloudWatch Logs — only on the function's own log group
+1. Name it something like `rekognition-cicd`
+2. Attach an inline policy with these permissions:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "cloudformation:*",
+    "lambda:*",
+    "s3:*",
+    "rekognition:DetectLabels",
+    "dynamodb:*",
+    "iam:CreateRole",
+    "iam:AttachRolePolicy",
+    "iam:PassRole",
+    "iam:GetRole",
+    "iam:DeleteRole",
+    "iam:DetachRolePolicy",
+    "logs:*"
+  ],
+  "Resource": "*"
+}
+```
+
+3. Go to **Security credentials** → **Create access key** → choose **Application running outside AWS**
+4. Save the **Access Key ID** and **Secret Access Key**
 
 ---
 
-## GitHub Secrets Required
+### Step 3: Deploy the CloudFormation Stacks (First Time)
 
-| Secret Name             | Description                                      |
-|-------------------------|--------------------------------------------------|
-| `AWS_ACCESS_KEY_ID`     | IAM access key                                   |
-| `AWS_SECRET_ACCESS_KEY` | IAM secret key                                   |
-| `AWS_REGION`            | e.g. `us-east-1`                                 |
-| `S3_BUCKET`             | Existing S3 bucket name                          |
-| `DYNAMODB_TABLE_BETA`   | `beta_results`                                   |
-| `DYNAMODB_TABLE_PROD`   | `prod_results`                                   |
-| `BETA_LAMBDA_ARN`       | ARN of `rekognition-beta-handler` (after first deploy) |
-| `PROD_LAMBDA_ARN`       | ARN of `rekognition-prod-handler` (after first deploy) |
-
-> `BETA_LAMBDA_ARN` and `PROD_LAMBDA_ARN` are needed by `configure_s3_notifications.py`
-> to set both prefixes in one call. After the first deploy, grab the ARNs from the
-> CloudFormation stack outputs and add them as secrets.
-
----
-
-## Deploying Manually (first time)
+Run these commands locally to create the beta and prod stacks. Replace `your-bucket` with your actual bucket name.
 
 **macOS / Linux**
 ```bash
@@ -77,13 +76,6 @@ aws cloudformation deploy \
   --stack-name rekognition-prod-stack \
   --parameter-overrides Env=prod S3BucketName=your-bucket \
   --capabilities CAPABILITY_NAMED_IAM
-
-# Get Lambda ARNs and save as GitHub secrets
-aws cloudformation describe-stacks --stack-name rekognition-beta-stack \
-  --query "Stacks[0].Outputs[?OutputKey=='LambdaArn'].OutputValue" --output text
-
-aws cloudformation describe-stacks --stack-name rekognition-prod-stack \
-  --query "Stacks[0].Outputs[?OutputKey=='LambdaArn'].OutputValue" --output text
 ```
 
 **Windows (PowerShell)**
@@ -101,8 +93,25 @@ aws cloudformation deploy `
   --stack-name rekognition-prod-stack `
   --parameter-overrides Env=prod S3BucketName=your-bucket `
   --capabilities CAPABILITY_NAMED_IAM
+```
 
-# Get Lambda ARNs and save as GitHub secrets
+---
+
+### Step 4: Get the Lambda ARNs
+
+After both stacks deploy, grab the Lambda ARNs from the stack outputs:
+
+**macOS / Linux**
+```bash
+aws cloudformation describe-stacks --stack-name rekognition-beta-stack \
+  --query "Stacks[0].Outputs[?OutputKey=='LambdaArn'].OutputValue" --output text
+
+aws cloudformation describe-stacks --stack-name rekognition-prod-stack \
+  --query "Stacks[0].Outputs[?OutputKey=='LambdaArn'].OutputValue" --output text
+```
+
+**Windows (PowerShell)**
+```powershell
 aws cloudformation describe-stacks --stack-name rekognition-beta-stack `
   --query "Stacks[0].Outputs[?OutputKey=='LambdaArn'].OutputValue" --output text
 
@@ -110,18 +119,100 @@ aws cloudformation describe-stacks --stack-name rekognition-prod-stack `
   --query "Stacks[0].Outputs[?OutputKey=='LambdaArn'].OutputValue" --output text
 ```
 
+Save both ARN values — you'll add them as GitHub secrets in the next step.
+
 ---
 
-## Verifying Results
+### Step 5: Add GitHub Secrets
 
-**macOS / Linux**
+Go to your repo on GitHub → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+
+Add all eight secrets:
+
+| Secret Name             | Value                                        |
+|-------------------------|----------------------------------------------|
+| `AWS_ACCESS_KEY_ID`     | From the IAM user you created                |
+| `AWS_SECRET_ACCESS_KEY` | From the IAM user you created                |
+| `AWS_REGION`            | e.g. `us-east-1`                             |
+| `S3_BUCKET`             | Your S3 bucket name                          |
+| `DYNAMODB_TABLE_BETA`   | `beta_results`                               |
+| `DYNAMODB_TABLE_PROD`   | `prod_results`                               |
+| `BETA_LAMBDA_ARN`       | ARN from `rekognition-beta-stack` output     |
+| `PROD_LAMBDA_ARN`       | ARN from `rekognition-prod-stack` output     |
+
+---
+
+### Step 6: Add an Image and Open a Pull Request
+
+Add a `.jpg` or `.png` to `CAI_02/foundational/images/`, then push to a new branch:
+
+```bash
+git checkout -b feature/test-rekognition
+git add project/foundational/images/
+git commit -m "add image for rekognition analysis"
+git push -u origin feature/test-rekognition
+```
+
+Open a pull request from `feature/test-rekognition` → `main` on GitHub. The **beta workflow** triggers automatically — watch it under the **Actions** tab.
+
+---
+
+### Step 7: Verify Beta Results
+
 ```bash
 aws dynamodb scan --table-name beta_results
+```
+
+---
+
+### Step 8: Merge to Trigger Prod
+
+Merge the pull request. The **prod workflow** triggers automatically.
+
+```bash
 aws dynamodb scan --table-name prod_results
 ```
 
-**Windows (PowerShell)**
-```powershell
-aws dynamodb scan --table-name beta_results
-aws dynamodb scan --table-name prod_results
-```
+---
+
+## What CloudFormation Provisions
+
+One stack per environment (`rekognition-beta-stack`, `rekognition-prod-stack`), each containing:
+
+| Resource              | Name                                                        |
+|-----------------------|-------------------------------------------------------------|
+| DynamoDB Table        | `beta_results` / `prod_results`                             |
+| Lambda Function       | `rekognition-beta-handler` / `rekognition-prod-handler`     |
+| IAM Execution Role    | `rekognition-beta-lambda-role` / `rekognition-prod-lambda-role` |
+
+S3 bucket and event notifications are configured separately (S3 bucket notifications can't be managed by two stacks simultaneously).
+
+---
+
+## IAM Permissions — Least Privilege
+
+The Lambda execution role is scoped tightly:
+
+- `s3:GetObject` — only on `rekognition-input/{env}/*`
+- `rekognition:DetectLabels` — all resources (required by Rekognition)
+- `dynamodb:PutItem` — only on the environment's own table
+- CloudWatch Logs — only on the function's own log group
+
+---
+
+## GitHub Secrets Reference
+
+| Secret Name             | Description                                      |
+|-------------------------|--------------------------------------------------|
+| `AWS_ACCESS_KEY_ID`     | IAM access key                                   |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key                                   |
+| `AWS_REGION`            | e.g. `us-east-1`                                 |
+| `S3_BUCKET`             | Existing S3 bucket name                          |
+| `DYNAMODB_TABLE_BETA`   | `beta_results`                                   |
+| `DYNAMODB_TABLE_PROD`   | `prod_results`                                   |
+| `BETA_LAMBDA_ARN`       | ARN of `rekognition-beta-handler` (after first deploy) |
+| `PROD_LAMBDA_ARN`       | ARN of `rekognition-prod-handler` (after first deploy) |
+
+> `BETA_LAMBDA_ARN` and `PROD_LAMBDA_ARN` are needed by `configure_s3_notifications.py`
+> to set both prefixes in one call. After the first deploy, grab the ARNs from the
+> CloudFormation stack outputs and add them as secrets.

@@ -74,10 +74,10 @@ Add a `.jpg` or `.png` file to the `CAI_02/foundational/images/` folder. There's
 ### Step 4: Create a Branch and Open a Pull Request
 
 ```bash
-git checkout -b feature/test-rekognition2
+git checkout -b feature/test-rekognition3
 git add CAI_02/foundational/images/
 git commit -m "add image for rekognition analysis"
-git push -u origin feature/test-rekognition2
+git push -u origin feature/test-rekognition3
 ```
 
 Then go to GitHub and open a pull request from `feature/test-rekognition` → `main`.

@@ -75,7 +75,7 @@ Add a `.jpg` or `.png` file to the `CAI_02/foundational/images/` folder. There's
 
 ```bash
 git checkout -b feature/test-rekognition2
-git add project/foundational/images/
+git add CAI_02/foundational/images/
 git commit -m "add image for rekognition analysis"
 git push -u origin feature/test-rekognition2
 ```

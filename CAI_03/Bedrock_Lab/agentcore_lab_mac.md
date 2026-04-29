@@ -191,6 +191,52 @@ agentcore dev --port 8080
 
 ---
 
+## Phase 3.5 — Customize Your Agent with a System Prompt
+
+A system prompt tells your agent who it is, how it should behave, and what it should focus on. Set this before deploying so your agent has a defined personality and scope.
+
+**3.5.1 — Open your agent's main file**
+```bash
+open app/MyBedrockAgent/main.py
+```
+
+**3.5.2 — Add a `system_prompt` to your agent definition**
+
+Update `main.py` to include a `system_prompt` argument:
+```python
+from strands import Agent
+
+agent = Agent(
+    model="us.amazon.nova-pro-v1:0",
+    system_prompt=(
+        "You are a helpful AWS cloud assistant. "
+        "You specialize in explaining AWS services clearly and concisely. "
+        "Always ask clarifying questions if the user's request is ambiguous."
+    ),
+)
+
+def handler(event, context=None):
+    prompt = event.get("prompt", "Hello!")
+    response = agent(prompt)
+    return {"response": str(response)}
+```
+
+**3.5.3 — Test the system prompt locally**
+
+If your dev server is still running from Phase 3, changes are picked up automatically via hot reload. Otherwise, restart it:
+```bash
+agentcore dev
+```
+
+**3.5.4 — Send a test prompt to confirm the persona is working**
+```bash
+agentcore invoke --prompt "Who are you and what can you help me with?"
+```
+
+> **Tip:** Keep system prompts focused. A clear role + a few behavioral rules is more effective than a long paragraph. You can always iterate on this before deploying in Phase 4.
+
+---
+
 ## Phase 4 — Deploy to AWS (AgentCore Runtime)
 
 **4.1 — Preview what will be deployed (dry run — no changes made)**

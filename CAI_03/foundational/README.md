@@ -25,8 +25,10 @@ Run the setup script to provision automatically:
 
 **macOS / Linux**
 ```bash
-S3_BUCKET=your-bucket AWS_REGION=us-east-1 \
-  python3 CAI_03/foundational/scripts/setup_foundational.py
+source venv/bin/activate
+S3_BUCKET=cai-01-jossai-1 \
+AWS_REGION=us-east-1 \
+python3 CAI_03/foundational/scripts/setup_foundational.py
 ```
 
 **Windows (PowerShell)**
@@ -61,16 +63,16 @@ python CAI_03/foundational/scripts/setup_foundational.py
 
 **macOS / Linux**
 ```bash
-aws s3 ls s3://your-bucket/beta/transcripts/
-aws s3 ls s3://your-bucket/beta/translations/
-aws s3 ls s3://your-bucket/beta/audio_outputs/
+aws s3 ls s3://cai-01-jossai-1/beta/transcripts/
+aws s3 ls s3://cai-01-jossai-1/beta/translations/
+aws s3 ls s3://cai-01-jossai-1/beta/audio_outputs/
 ```
 
 **Windows (PowerShell)**
 ```powershell
-aws s3 ls s3://your-bucket/beta/transcripts/
-aws s3 ls s3://your-bucket/beta/translations/
-aws s3 ls s3://your-bucket/beta/audio_outputs/
+aws s3 ls s3://cai-01-jossai-1/beta/transcripts/
+aws s3 ls s3://cai-01-jossai-1/beta/translations/
+aws s3 ls s3://cai-01-jossai-1/beta/audio_outputs/
 ```
 
 ---

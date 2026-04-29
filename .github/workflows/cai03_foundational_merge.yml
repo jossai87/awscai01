@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'CAI_03/foundational/**'
 
 jobs:
   process-audio-prod:

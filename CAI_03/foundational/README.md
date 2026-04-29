@@ -89,7 +89,18 @@ aws s3 ls s3://cai-01-jossai-1/beta/audio_outputs/
 
 ## Supported Languages
 
-Change `TARGET_LANG` in the workflow env to any of:
+The pipeline defaults to Spanish (`es`). To change the language, update `TARGET_LANG` in both workflow files:
+
+- `.github/workflows/cai03_foundational_pr.yml` (beta)
+- `.github/workflows/cai03_foundational_merge.yml` (prod)
+
+Find this line in each file and change the value:
+
+```yaml
+TARGET_LANG: es
+```
+
+Supported codes:
 
 | Code | Language |
 |------|----------|
@@ -99,3 +110,13 @@ Change `TARGET_LANG` in the workflow env to any of:
 | `pt` | Portuguese |
 | `ja` | Japanese |
 | `zh` | Chinese (Simplified) |
+
+You can also override it locally when running the script directly:
+
+```bash
+S3_BUCKET=cai-01-jossai-1 \
+DYNAMODB_TABLE=beta_results \
+BRANCH=feature/test-audio-pipeline \
+TARGET_LANG=fr \
+python3 CAI_03/foundational/process_audio.py
+```

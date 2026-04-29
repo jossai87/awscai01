@@ -4,6 +4,8 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'CAI_04/foundational/**'
 
 jobs:
   process-prompts-beta:

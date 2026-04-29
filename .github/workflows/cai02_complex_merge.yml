@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'CAI_02/complex/**'
+      - 'CAI_02/foundational/images/**'
 
 jobs:
   deploy-prod:

@@ -4,6 +4,8 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'CAI_02/foundational/**'
 
 jobs:
   analyze-beta:

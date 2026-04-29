@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'CAI_02/modern/**'
+      - 'CAI_02/foundational/images/**'
 
 jobs:
   analyze-prod:

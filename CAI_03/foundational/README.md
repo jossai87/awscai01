@@ -53,7 +53,7 @@ python CAI_03/foundational/scripts/setup_foundational.py
 
 ## Adding Audio Files
 
-1. Add `.mp3` files to `CAI_03/foundational/audio_inputs/`
+1. Add an English `.mp3` file to `CAI_03/foundational/audio_inputs/` — the pipeline requires at least one or it will fail. Any English speech recording works.
 2. Create a new branch and open a PR:
 
 ```bash

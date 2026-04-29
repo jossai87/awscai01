@@ -1,0 +1,69 @@
+name: CAI03 Complex - Multilingual Audio Beta - Deploy IaC + Upload
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy-beta:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install boto3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy Beta CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --template-file CAI_03/complex/cloudformation/template.yml \
+            --stack-name multilingual-beta-stack \
+            --parameter-overrides Env=beta S3BucketName=${{ secrets.S3_BUCKET }} TargetLang=es \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset
+
+      - name: Get Beta Lambda ARN
+        id: get-arn
+        run: |
+          ARN=$(aws cloudformation describe-stacks \
+            --stack-name multilingual-beta-stack \
+            --query "Stacks[0].Outputs[?OutputKey=='LambdaArn'].OutputValue" \
+            --output text)
+          echo "lambda_arn=$ARN" >> $GITHUB_OUTPUT
+
+      - name: Deploy Lambda code
+        run: |
+          cd CAI_03/complex/lambda
+          zip handler.zip handler.py
+          aws lambda update-function-code \
+            --function-name multilingual-beta-handler \
+            --zip-file fileb://handler.zip
+          aws lambda wait function-updated \
+            --function-name multilingual-beta-handler
+
+      - name: Upload audio files to S3 (beta)
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          for f in CAI_03/foundational/audio_inputs/*.mp3; do
+            [ -f "$f" ] || continue
+            filename=$(basename "$f")
+            aws s3 cp "$f" "s3://${S3_BUCKET}/audio_inputs/${filename}" \
+              --metadata "env=beta"
+            echo "Uploaded $filename"
+          done

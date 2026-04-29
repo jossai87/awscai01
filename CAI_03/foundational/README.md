@@ -54,8 +54,18 @@ python CAI_03/foundational/scripts/setup_foundational.py
 ## Adding Audio Files
 
 1. Add `.mp3` files to `CAI_03/foundational/audio_inputs/`
-2. Open a PR → beta workflow runs → outputs in `s3://bucket/beta/`
-3. Merge → prod workflow runs → outputs in `s3://bucket/prod/`
+2. Create a new branch and open a PR:
+
+```bash
+git checkout -b feature/test-audio-pipeline
+git add CAI_03/foundational/audio_inputs/
+git commit -m "add audio file for transcription pipeline"
+git push -u origin feature/test-audio-pipeline
+```
+
+3. Open a pull request from `feature/test-audio-pipeline` → `main` on GitHub
+4. Beta workflow runs automatically → outputs in `s3://cai-01-jossai-1/beta/`
+5. Merge → prod workflow runs → outputs in `s3://cai-01-jossai-1/prod/`
 
 ---
 

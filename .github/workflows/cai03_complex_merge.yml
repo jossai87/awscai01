@@ -1,0 +1,60 @@
+name: CAI03 Complex - Multilingual Audio Prod - Deploy IaC + Upload
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install boto3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy Prod CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --template-file CAI_03/complex/cloudformation/template.yml \
+            --stack-name multilingual-prod-stack \
+            --parameter-overrides Env=prod S3BucketName=${{ secrets.S3_BUCKET }} TargetLang=es \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset
+
+      - name: Deploy Lambda code
+        run: |
+          cd CAI_03/complex/lambda
+          zip handler.zip handler.py
+          aws lambda update-function-code \
+            --function-name multilingual-prod-handler \
+            --zip-file fileb://handler.zip
+          aws lambda wait function-updated \
+            --function-name multilingual-prod-handler
+
+      - name: Upload audio files to S3 (prod)
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          for f in CAI_03/foundational/audio_inputs/*.mp3; do
+            [ -f "$f" ] || continue
+            filename=$(basename "$f")
+            aws s3 cp "$f" "s3://${S3_BUCKET}/audio_inputs/${filename}" \
+              --metadata "env=prod"
+            echo "Uploaded $filename"
+          done

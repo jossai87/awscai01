@@ -1,0 +1,46 @@
+name: CAI03 Advanced - Upload Audio to S3
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+    paths:
+      - 'CAI_03/foundational/audio_inputs/**.mp3'
+
+jobs:
+  upload-audio:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "env=prod" >> $GITHUB_OUTPUT
+          else
+            echo "env=beta" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload .mp3 files to S3 with env metadata
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          ENV: ${{ steps.env.outputs.env }}
+        run: |
+          for f in CAI_03/foundational/audio_inputs/*.mp3; do
+            [ -f "$f" ] || continue
+            filename=$(basename "$f")
+            aws s3 cp "$f" "s3://${S3_BUCKET}/audio_inputs/${filename}" \
+              --metadata "env=${ENV}"
+            echo "Uploaded $filename with metadata env=${ENV}"
+          done

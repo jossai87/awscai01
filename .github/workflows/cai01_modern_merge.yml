@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'CAI_01/modern/**'
 
 jobs:
   synthesize-prod:

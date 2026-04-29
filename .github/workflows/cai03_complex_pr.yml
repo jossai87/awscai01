@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'CAI_03/complex/**'
+      - 'CAI_03/foundational/audio_inputs/**'
 
 jobs:
   deploy-beta:

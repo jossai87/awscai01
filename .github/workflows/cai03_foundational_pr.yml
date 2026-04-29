@@ -4,6 +4,8 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'CAI_03/foundational/**'
 
 jobs:
   process-audio-beta:

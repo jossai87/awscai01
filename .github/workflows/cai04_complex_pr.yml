@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'CAI_04/complex/**'
+      - 'CAI_04/foundational/**'
 
 jobs:
   deploy-beta:

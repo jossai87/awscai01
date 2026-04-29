@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'CAI_02/advanced/**'
+      - 'CAI_02/foundational/images/**'
 
 jobs:
   upload-and-validate-beta:

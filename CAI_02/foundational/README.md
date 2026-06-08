@@ -74,10 +74,10 @@ Add a `.jpg` or `.png` file to the `CAI_02/foundational/images/` folder. There's
 ### Step 4: Create a Branch and Open a Pull Request
 
 ```bash
-git checkout -b feature/test-rekognition
-git add project/foundational/images/
+git checkout -b feature/test-rekognition3
+git add CAI_02/foundational/images/
 git commit -m "add image for rekognition analysis"
-git push -u origin feature/test-rekognition
+git push -u origin feature/test-rekognition3
 ```
 
 Then go to GitHub and open a pull request from `feature/test-rekognition` → `main`.
@@ -156,3 +156,28 @@ Create an IAM user with the following permissions:
   "source_file": "classroom.jpg"
 }
 ```
+
+---
+
+## Local Run
+
+To run the pipeline locally without GitHub Actions:
+
+**Set up a virtual environment and install dependencies:**
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install boto3
+```
+
+**Run the script:**
+
+```bash
+S3_BUCKET=cai-01-jossai-1 \
+DYNAMODB_TABLE=beta_results \
+BRANCH=feature/test-rekognition3 \
+python3 CAI_02/foundational/analyze_image.py
+```
+
+Replace `your-bucket-name` with your actual S3 bucket. Change `DYNAMODB_TABLE` to `prod_results` to write to the prod table instead.

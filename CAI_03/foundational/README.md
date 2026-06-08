@@ -25,8 +25,10 @@ Run the setup script to provision automatically:
 
 **macOS / Linux**
 ```bash
-S3_BUCKET=your-bucket AWS_REGION=us-east-1 \
-  python3 CAI_03/foundational/scripts/setup_foundational.py
+source venv/bin/activate
+S3_BUCKET=cai-01-jossai-1 \
+AWS_REGION=us-east-1 \
+python3 CAI_03/foundational/scripts/setup_foundational.py
 ```
 
 **Windows (PowerShell)**
@@ -51,9 +53,19 @@ python CAI_03/foundational/scripts/setup_foundational.py
 
 ## Adding Audio Files
 
-1. Add `.mp3` files to `CAI_03/foundational/audio_inputs/`
-2. Open a PR → beta workflow runs → outputs in `s3://bucket/beta/`
-3. Merge → prod workflow runs → outputs in `s3://bucket/prod/`
+1. Add an English `.mp3` file to `CAI_03/foundational/audio_inputs/` — the pipeline requires at least one or it will fail. Any English speech recording works.
+2. Create a new branch and open a PR:
+
+```bash
+git checkout -b feature/test-audio-pipeline
+git add CAI_03/foundational/audio_inputs/
+git commit -m "add audio file for transcription pipeline"
+git push -u origin feature/test-audio-pipeline
+```
+
+3. Open a pull request from `feature/test-audio-pipeline` → `main` on GitHub
+4. Beta workflow runs automatically → outputs in `s3://cai-01-jossai-1/beta/`
+5. Merge → prod workflow runs → outputs in `s3://cai-01-jossai-1/prod/`
 
 ---
 
@@ -61,23 +73,34 @@ python CAI_03/foundational/scripts/setup_foundational.py
 
 **macOS / Linux**
 ```bash
-aws s3 ls s3://your-bucket/beta/transcripts/
-aws s3 ls s3://your-bucket/beta/translations/
-aws s3 ls s3://your-bucket/beta/audio_outputs/
+aws s3 ls s3://cai-01-jossai-1/beta/transcripts/
+aws s3 ls s3://cai-01-jossai-1/beta/translations/
+aws s3 ls s3://cai-01-jossai-1/beta/audio_outputs/
 ```
 
 **Windows (PowerShell)**
 ```powershell
-aws s3 ls s3://your-bucket/beta/transcripts/
-aws s3 ls s3://your-bucket/beta/translations/
-aws s3 ls s3://your-bucket/beta/audio_outputs/
+aws s3 ls s3://cai-01-jossai-1/beta/transcripts/
+aws s3 ls s3://cai-01-jossai-1/beta/translations/
+aws s3 ls s3://cai-01-jossai-1/beta/audio_outputs/
 ```
 
 ---
 
 ## Supported Languages
 
-Change `TARGET_LANG` in the workflow env to any of:
+The pipeline defaults to Spanish (`es`). To change the language, update `TARGET_LANG` in both workflow files:
+
+- `.github/workflows/cai03_foundational_pr.yml` (beta)
+- `.github/workflows/cai03_foundational_merge.yml` (prod)
+
+Find this line in each file and change the value:
+
+```yaml
+TARGET_LANG: es
+```
+
+Supported codes:
 
 | Code | Language |
 |------|----------|
@@ -87,3 +110,13 @@ Change `TARGET_LANG` in the workflow env to any of:
 | `pt` | Portuguese |
 | `ja` | Japanese |
 | `zh` | Chinese (Simplified) |
+
+You can also override it locally when running the script directly:
+
+```bash
+S3_BUCKET=cai-01-jossai-1 \
+DYNAMODB_TABLE=beta_results \
+BRANCH=feature/test-audio-pipeline \
+TARGET_LANG=fr \
+python3 CAI_03/foundational/process_audio.py
+```

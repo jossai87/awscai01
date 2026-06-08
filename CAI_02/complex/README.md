@@ -67,14 +67,14 @@ Run these commands locally to create the beta and prod stacks. Replace `your-buc
 aws cloudformation deploy \
   --template-file CAI_02/complex/cloudformation/template.yml \
   --stack-name rekognition-beta-stack \
-  --parameter-overrides Env=beta S3BucketName=your-bucket \
+  --parameter-overrides Env=beta S3BucketName=cai-01-jossai-1 \
   --capabilities CAPABILITY_NAMED_IAM
 
 # Deploy prod stack
 aws cloudformation deploy \
   --template-file CAI_02/complex/cloudformation/template.yml \
   --stack-name rekognition-prod-stack \
-  --parameter-overrides Env=prod S3BucketName=your-bucket \
+  --parameter-overrides Env=prod S3BucketName=cai-01-jossai-1 \
   --capabilities CAPABILITY_NAMED_IAM
 ```
 
@@ -84,14 +84,14 @@ aws cloudformation deploy \
 aws cloudformation deploy `
   --template-file CAI_02/complex/cloudformation/template.yml `
   --stack-name rekognition-beta-stack `
-  --parameter-overrides Env=beta S3BucketName=your-bucket `
+  --parameter-overrides Env=beta S3BucketName=cai-01-jossai-1 `
   --capabilities CAPABILITY_NAMED_IAM
 
 # Deploy prod stack
 aws cloudformation deploy `
   --template-file CAI_02/complex/cloudformation/template.yml `
   --stack-name rekognition-prod-stack `
-  --parameter-overrides Env=prod S3BucketName=your-bucket `
+  --parameter-overrides Env=prod S3BucketName=cai-01-jossai-1 `
   --capabilities CAPABILITY_NAMED_IAM
 ```
 
@@ -148,7 +148,7 @@ Add a `.jpg` or `.png` to `CAI_02/foundational/images/`, then push to a new bran
 
 ```bash
 git checkout -b feature/test-rekognition
-git add project/foundational/images/
+git add CAI_02/foundational/images/
 git commit -m "add image for rekognition analysis"
 git push -u origin feature/test-rekognition
 ```
@@ -172,6 +172,30 @@ Merge the pull request. The **prod workflow** triggers automatically.
 ```bash
 aws dynamodb scan --table-name prod_results
 ```
+
+---
+
+## Local Setup
+
+To deploy all infrastructure locally instead of through GitHub Actions, use the setup script.
+
+**Set up a virtual environment and install dependencies:**
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install boto3
+```
+
+**Run the setup script:**
+
+```bash
+S3_BUCKET=cai-01-jossai-1 \
+AWS_REGION=us-east-1 \
+python3 CAI_02/complex/scripts/setup_complex.py
+```
+
+The script will deploy both CloudFormation stacks, push Lambda code, configure S3 event notifications, and create a CI IAM user, then print all the GitHub secrets you need.
 
 ---
 

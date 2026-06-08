@@ -20,12 +20,12 @@ GitHub Merge →  synthesize.py runs  →  polly-audio/prod.mp3 uploaded to S3
 
 ## Step 1 — S3 Bucket
 
-Your bucket is already created: **`cai-01-jossai-1`** in `us-east-1`. No action needed here.
+Your bucket is already created: **`cai-01-jamin-1`** in `us-east-1`. No action needed here.
 
 To confirm it exists:
 
 ```bash
-aws s3 ls s3://cai-01-jossai-1
+aws s3 ls s3://cai-01-jamin-1
 ```
 
 ---
@@ -75,7 +75,7 @@ This creates an IAM user with least-privilege permissions and prints the credent
 ```bash
 source /tmp/cai01-venv/bin/activate
 
-export S3_BUCKET_NAME=cai-01-jossai-1
+export S3_BUCKET_NAME=cai-01-jamin-1
 export AWS_REGION=us-east-1
 
 python3 "CAI_01/foundational/scripts/setup_iam_polly.py"
